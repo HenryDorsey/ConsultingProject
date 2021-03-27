@@ -8,10 +8,9 @@ import numpy as np
 def get_county_spending(counties=None):
     if counties == None:
         payload=   {
-          "filters": {
+          "filter": {
               "def_codes": ["L", "M", "N", "O", "P", "U"],
               # Testing filtering just by Health and Human Services
-              "agencies":["075"]
           },
           "geo_layer": "county",
           #"geo_layer_filters":,
@@ -33,8 +32,12 @@ def get_county_spending(counties=None):
 
     # json flatten unnecessary but allows the for loop to functionwith indices in current implementation
     # can't use json_read from pd due to nested json
+    
     county_json = json_normalize(r.json())
+    #county_json = r.json()
+
     init_data = county_json['results'][0]
+    print(init_data)
     county_spending = pd.DataFrame(data=init_data)
 
     for i in range(len(county_json)):
@@ -117,6 +120,54 @@ def post_usaspending(query='agency', just_health=False):
         page+=1
         print(r.status_code, page)
     return output
+
+def geo_health_search():
+    
+    q = '/api/v2/search/spending_by_geography/'
+
+    # initialization
+    has_next_page = True
+    page = 1
+    output = []
+
+    #while has_next_page:
+    payload =   {
+  "filters": {
+      #"keywords": ["Filter is required"],
+      "agencies":[{
+          "type":"awarding",
+          "tier":"toptier",
+          "name":"Department of Health and Human Services"
+      }], 
+      "time_period":[{
+          "start_date":"2020-02-06",
+          "end_date":"2021-03-01"
+      }]
+  },
+  "scope": "recipient_location",
+  "geo_layer": "county"
+}
+
+    r = requests.post('https://api.usaspending.gov'+q, json=payload)
+    rjson = r.json()
+    output+= rjson['results']
+   # has_next_page = rjson['page_metadata']['hasNext']
+    #page+=1
+    print(r.status_code, page)
+    
+
+    init_data = {'shape_code': [i['shape_code'] for i in output[:]],
+     'aggregated_amount': [i['aggregated_amount'] for i in output[:]],
+     'display_name': [i['display_name'] for i in output[:]],
+     'population': [i['population'] for i in output[:]],
+     'per_capita': [i['per_capita'] for i in output[:]]}
+
+
+    #init_data = geo_dep_health[0]
+    gdh_df = pd.DataFrame(data=init_data)
+
+    return gdh_df
+
 
 # https://gist.github.com/rogerallen/1583593
 
