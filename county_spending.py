@@ -8,8 +8,10 @@ import numpy as np
 def get_county_spending(counties=None):
     if counties == None:
         payload=   {
-          "filter": {
-              "def_codes": ["L", "M", "N", "O", "P", "U"]
+          "filters": {
+              "def_codes": ["L", "M", "N", "O", "P", "U"],
+              # Testing filtering just by Health and Human Services
+              "agencies":["075"]
           },
           "geo_layer": "county",
           #"geo_layer_filters":,
@@ -77,6 +79,44 @@ def spend_county_state_map(spend, ACS, covid):
     
     return spend
 
+# http://jeffreyfossett.com/2017/05/07/querying-usa-spending-python.html
+
+def post_usaspending(query='agency', just_health=False):
+    
+    query_dict = {'agency':'api/v2/disaster/agency/spending/',
+                 'cfda':'/api/v2/disaster/cfda/spending/', # v long
+                 'fed_acct':'/api/v2/disaster/federal_account/spending/',
+                 'search_geo':'/api/v2/search/spending_by_geography'}
+    q = query_dict[query]
+    
+
+    # initialization
+    has_next_page = True
+    page = 1
+    output = []
+
+    while has_next_page:
+        payload =  {
+              "filter": {
+                  "def_codes": ["L", "M", "N", "O", "P", "U"],
+                  "award_type_codes": ["02", "03", "04", "05", "07", "08", "10", "06", "09", "11", "A", "B", "C", "D", "IDV_A", "IDV_B", "IDV_B_A", "IDV_B_B", "IDV_B_C", "IDV_C", "IDV_D", "IDV_E"]
+              },
+              "pagination": {
+                  "limit": 10,
+                  "page": page,
+                  "sort": "award_count",
+                  "order": "desc"
+              },
+              "spending_type": "total"
+          }
+
+        r = requests.post('https://api.usaspending.gov'+q, json=payload)
+        rjson = r.json()
+        output+= rjson['results']
+        has_next_page = rjson['page_metadata']['hasNext']
+        page+=1
+        print(r.status_code, page)
+    return output
 
 # https://gist.github.com/rogerallen/1583593
 
