@@ -4,13 +4,14 @@ import requests
 import pandas as pd
 from pandas.io.json import json_normalize
 import numpy as np
+import copy
 
 def get_county_spending(counties=None):
     if counties == None:
         payload=   {
           "filter": {
               "def_codes": ["L", "M", "N", "O", "P", "U"],
-              # Testing filtering just by Health and Human Services
+              "award_type_codes": ["02", "03", "04", "05", "07", "08", "10", "06", "09", "11", "A", "B", "C", "D", "IDV_A", "IDV_B", "IDV_B_A", "IDV_B_B", "IDV_B_C", "IDV_C", "IDV_D", "IDV_E"]
           },
           "geo_layer": "county",
           #"geo_layer_filters":,
@@ -37,7 +38,6 @@ def get_county_spending(counties=None):
     #county_json = r.json()
 
     init_data = county_json['results'][0]
-    print(init_data)
     county_spending = pd.DataFrame(data=init_data)
 
     for i in range(len(county_json)):
@@ -50,14 +50,15 @@ def get_county_spending(counties=None):
 # Fix this mess. Use joins.
 # Crazy slow
 
-def spend_county_state_map(spend, ACS, covid):
+def spend_county_state_map(spending, ACS, covid):
+    spend = copy.deepcopy(spending)
+    spend['State'] = ''
     val_count = spend['county_name'].value_counts()
     dupes = [i for i in val_count.index if val_count[i]!=1]
-    spend['State'] = ''
     for idx in spend.index:
         if spend.loc[idx, 'county_name'] in dupes:
             # Get a subset of the ACS data that matches entry county name
-            ACS_sub = ACS[ACS['county_name']==spend.loc[idx, 'county_name']][['id','county_name','tot','State']]
+            ACS_sub = ACS[ACS['county_name']==spend.loc[idx, 'county_name']][['county_name','tot','State']]
             # calculate the difference between spend entry and ACS populations
             ACS_sub['diffs'] = np.abs(spend.loc[idx, 'population']-ACS_sub['tot'])
             # assign the lowest difference to the spending df
@@ -81,6 +82,15 @@ def spend_county_state_map(spend, ACS, covid):
                 spend.loc[idx, 'State'] = 'Missing'
     
     return spend
+
+def scsm2(spending, ACS, covid):
+    val_count = spend['county_name'].value_counts()
+    dupes = [i for i in val_count.index if val_count[i]!=1]
+    spend = copy.deepcopy(spending)
+    spend['State'] = ''    
+    
+    
+    
 
 # http://jeffreyfossett.com/2017/05/07/querying-usa-spending-python.html
 
@@ -138,6 +148,16 @@ def geo_health_search():
           "type":"awarding",
           "tier":"toptier",
           "name":"Department of Health and Human Services"
+      },
+      {
+          "type":"awarding",
+          "tier":"toptier",
+          "name":"Department of Education"
+      },
+      {
+          "type":"awarding",
+          "tier":"toptier",
+          "name":"Department of Veteran Affairs"
       }], 
       "time_period":[{
           "start_date":"2020-02-06",
