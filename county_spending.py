@@ -131,7 +131,11 @@ def post_usaspending(query='agency', just_health=False):
         print(r.status_code, page)
     return output
 
-def geo_health_search():
+def geo_search(departments=['health', 'education', 'housing', 'labor', 'transport', 'veterans']):
+    
+    
+    dep_dict = {'health':'075', 'education':'091', 'housing':'086','labor':'1601','transport':'069','veterans':'036'}
+    codes = [dep_dict[i] for i in departments]
     
     q = '/api/v2/search/spending_by_geography/'
 
@@ -143,22 +147,7 @@ def geo_health_search():
     #while has_next_page:
     payload =   {
   "filters": {
-      #"keywords": ["Filter is required"],
-      "agencies":[{
-          "type":"awarding",
-          "tier":"toptier",
-          "name":"Department of Health and Human Services"
-      },
-      {
-          "type":"awarding",
-          "tier":"toptier",
-          "name":"Department of Education"
-      },
-      {
-          "type":"awarding",
-          "tier":"toptier",
-          "name":"Department of Veteran Affairs"
-      }], 
+      "psc_codes":["B", "Q", "U", "V", "G"],
       "time_period":[{
           "start_date":"2020-02-06",
           "end_date":"2021-03-01"
